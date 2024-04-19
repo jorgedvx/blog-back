@@ -1,11 +1,17 @@
+const dotenv = require('dotenv');
 const mongoose = require("mongoose"); /*import mongoose*/
+
+dotenv.config()
+const connectionMongo = process.env.MONGO_URL
 
 const conexion = async() => {
 
     try {
 
-        await mongoose.connect("mongodb://127.0.0.1:27017/mi_blog");
-
+        await mongoose.connect(connectionMongo,{
+            autoIndex: true
+        });
+        
         //Parametros dentro de objetos
         //useNewUrlParse: true
         //useUnifiedTopology: true
@@ -24,4 +30,3 @@ const conexion = async() => {
 module.exports = {
     conexion
 }
-
