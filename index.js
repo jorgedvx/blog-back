@@ -1,6 +1,9 @@
 const { conexion } = require("./database/conexion")
 const express = require("express");
 const cors = require("cors"); //comun con el frontend
+const fileupload = require("express-fileupload")
+
+
 
 // Inicializar app
 console.log("App de node arrancada");
@@ -21,6 +24,11 @@ app.use(cors());
 // Convertir body a objeto js
 app.use(express.json()); // recibir content type en app/json
 app.use(express.urlencoded({extended:true})); // form urlencoded
+app.use(fileupload({
+    useTempFiles: true,
+    tempFileDir: './uploads'
+}))
+
 
 // Crear rutas
 const rutas_articulo = require("./rutas/articulo")
@@ -49,7 +57,10 @@ app.get("/probando", (req, res) => {
 
 //Crear servidor y escuchar peticiones
 
-// console.log(process.env)
+
+//Solucion NODE AUTORIZATION
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 1;
+
 
 app.listen(process.env.PORT || puerto, () => {
 

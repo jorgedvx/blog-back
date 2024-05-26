@@ -2,6 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const { validarArticulo } = require("../helpers/validar");
 const Articulo = require("../modelos/Articulo");
+const { uploadImage, getAssetInfo, getImagenes, getImagen, deleteImage } = require('../database/cloudinary')
+const fse = require('fs-extra')
 
 
 const prueba = (req, res) => {
@@ -143,7 +145,7 @@ const uno = (req, res) => {
             return res.status(400).json({
                 status: "error",
                 mensaje: "No se han encontrado el articulos"
-                
+
             })
 
         }
@@ -169,7 +171,7 @@ const uno = (req, res) => {
 
 }
 
-const borrar = (req, res) => {
+const borrar = async(req, res) => {
 
 
 
@@ -177,7 +179,7 @@ const borrar = (req, res) => {
 
 
 
-    Articulo.findOneAndDelete({ _id: articuloId }).then((articuloBorrado) => {
+    Articulo.findByIdAndDelete({ _id: articuloId }).then(async(articuloBorrado) => {
 
 
         if (!articuloBorrado) {
@@ -188,31 +190,25 @@ const borrar = (req, res) => {
         }
 
 
+        if(articuloBorrado.public_id){ 
+
+           await deleteImage(articuloBorrado.public_id)
+
+        }
+
+        
+
+
         return res.status(200).json({
             status: "success",
             mensaje: "Metodo de borrar",
             articulo: articuloBorrado
-    
+            
+
 
         });
 
     })
-
-
-
-    // Articulo.findOneAndDelete({_id: articuloId}).then((articuloGuardado)=>{
-
-    //     return res.status(200).json({
-    //         status: "success",
-    //         mensaje: "Metodo de borrar",
-    //         articuloGuardado
-
-    //     });
-
-    // })
-
-
-
 
 
 }
@@ -222,7 +218,7 @@ const borrar = (req, res) => {
 
 
 
-const editar = (req, res) => {
+const editar = async (req, res) => {
 
     // Recoger id de los articulos a editar
     let articuloId = req.params.id;
@@ -243,8 +239,9 @@ const editar = (req, res) => {
     }
 
 
+
     // Buscar y actualizar articulo
-    Articulo.findOneAndUpdate({ _id: articuloId }, parametros, { new: true }).then((articuloActualizado) => {
+    Articulo.findOneAndUpdate({ _id: articuloId }, parametros, { new: true }).then(async(articuloActualizado) => {
 
         if (!articuloActualizado) {
             return res.status(400).json({
@@ -253,10 +250,13 @@ const editar = (req, res) => {
             })
         }
 
+
+
         // Devolver respuesta
         return res.status(200).json({
             status: "success",
             articulo: articuloActualizado
+            
         })
 
     })
@@ -272,32 +272,37 @@ const editar = (req, res) => {
 
 }
 
-const subir = (req, res) => {
+const subir = async (req, res) => {
 
-    // Configurar multer SB //
+    // console.log(req.files)
+    // console.log(req.files.image.tempFilePath)
 
-    // Recoger el fichero de imagen subido SB//
-    if (!req.file && !req.files) {
+    // Recoger id del parametro
+    let articuloId = req.params.id;
+
+    //Validar dato en el campo imagen
+    if (!req.files && !req.file) {
 
         return res.status(400).json({
             status: "error",
-            mensaje: "Peticion invalida"
+            mensaje: "Seleccione una imagen"
         });
-
     }
 
-    // Nombre del archivo
-    let archivo = req.file.originalname;
+    //Nombre del  archivo
+    let archivo = req.files.image.name
 
-    // Extension del archivo
+    //extension de archivo
     let archivo_split = archivo.split("\.");
     let extension = archivo_split[1];
+    // console.log(req.files)
+
 
     // Comprobar la extension correcta
     if (extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif") {
 
         // Borrar archivo y dar respuesta
-        fs.unlink(req.file.path, (error) => {
+        fs.unlink(req.files.image.tempFilePath, (error) => {
 
             return res.status(400).json({
                 status: "error",
@@ -311,61 +316,100 @@ const subir = (req, res) => {
 
     } else {
 
-        // Recoger id de los articulos a editar
-        let articuloId = req.params.id;
 
-        // Buscar y actualizar articulo
-        Articulo.findOneAndUpdate({ _id: articuloId }, { imagen: req.file.filename }, { new: true }).then((articuloActualizado) => {
+        try {
+            if (req.files?.image) {
 
-            if (!articuloActualizado) {
-                return res.status(400).json({
-                    status: "error",
-                    mensaje: "Error al actualizar"
+                const result = await uploadImage(req.files.image.tempFilePath)
+                // console.log(result)
+
+                const articuloAntiguo = await Articulo.findById({ _id: articuloId})
+
+                // Buscar y actualizar articulo
+                Articulo.findOneAndUpdate({ _id: articuloId }, { public_id: result.public_id, secure_url: result.secure_url , imagen: req.files.image.name }, { new: true }).then(async(articuloActualizado) => {
+
+                    if (!articuloActualizado) {
+                        return res.status(400).json({
+                            status: "error",
+                            mensaje: "No existe el Usuario"
+                        })
+                    }
+
+                    fse.unlinkSync(req.files.image.tempFilePath)
+
+                    if(articuloAntiguo.public_id !== articuloActualizado.public_id){
+
+                        await deleteImage(articuloAntiguo.public_id)
+            
+                        
+                    }
+
+
+                    // Devolver respuesta
+                    return res.status(200).json({
+                        status: "success",
+                        articulo: articuloActualizado,
+                        fichero: req.file,
+                    })
+
+
+
                 })
+
+
+
+                    .catch(error => {
+                        return res.status(400).json({
+                            status: "error",
+                            mensaje: "Error en la actualizacion"
+                        });
+
+
+
+
+                    })
+
             }
 
-            // Devolver respuesta
-            return res.status(200).json({
-                status: "success",
-                articulo: articuloActualizado,
-                fichero: req.file
-            })
 
-        })
-
-            .catch(error => {
-                return res.status(400).json({
-                    status: "error",
-                    mensaje: "Error en el ruta Actualizar"
-                });
-
-            });
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
 
     }
 
+
+
 }
 
-const imagen = (req, res) => {
+const imagenes = async (req, res) => {
 
-    let fichero = req.params.fichero;
-    let ruta_fisica = "./imagenes/articulos/" + fichero;
 
-    fs.stat(ruta_fisica, (error, existe) => {
+    const { resources } = await getImagenes()
 
-        if (existe) {
-            return res.sendFile(path.resolve(ruta_fisica));
-        } else {
+    const publicIds = resources.map((file) => file.public_id);
 
-            return res.status(400).json({
-                status: "error",
-                mensaje: "La imagen no existe",
-                existe,
-                fichero,
-                ruta_fisica
-            });
+    return res.send(publicIds)
 
-        }
+
+}
+
+const imagen = async (req, res) => {
+
+    // Conseguir parametro
+    let articuloId = req.params.id
+
+    Articulo.findById({ _id: articuloId }).then(async(articulo)=>{
+
+        let public_id = articulo.public_id
+
+        return res.status(200).json({
+            public_id
+            
+        })
+
     })
+
 
 }
 
@@ -419,6 +463,7 @@ module.exports = {
     borrar,
     editar,
     subir,
+    imagenes,
     imagen,
     buscador
 }

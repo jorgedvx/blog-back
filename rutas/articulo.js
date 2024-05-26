@@ -1,10 +1,10 @@
 const express = require("express");
-const multer = require("multer"); //imgs
+// const multer = require("multer"); //imgs
 
 const ArticuloControlador = require("../controladores/articulo");
 
 const router = express.Router();
-
+/*
 const almacenamiento = multer.diskStorage({
    
     // Donde se suben los archivos
@@ -20,7 +20,7 @@ const almacenamiento = multer.diskStorage({
 })
 
 const subidas = multer({storage: almacenamiento})
-
+*/
 
 //Rutas de pruebas
 router.get("/ruta-de-prueba", ArticuloControlador.prueba);
@@ -34,8 +34,9 @@ router.get("/articulos/:ultimos?", ArticuloControlador.listar);
 router.get("/articulo/:id", ArticuloControlador.uno);
 router.delete("/articulo/:id", ArticuloControlador.borrar);
 router.put("/articulo/:id", ArticuloControlador.editar);
-router.post("/subir-imagen/:id",[subidas.single("file0")], ArticuloControlador.subir);
-router.get("/imagen/:fichero", ArticuloControlador.imagen);
+router.post("/subir-imagen/:id", ArticuloControlador.subir);
+router.get("/imagenes", ArticuloControlador.imagenes);
+router.get("/imagen/:id", ArticuloControlador.imagen);
 router.get("/buscar/:busqueda", ArticuloControlador.buscador);
 
 

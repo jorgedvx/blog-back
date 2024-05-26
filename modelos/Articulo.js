@@ -1,22 +1,30 @@
 const { Schema, model } = require("mongoose");
 
+
 const ArticuloSchema = Schema({
-    titulo:{
+    titulo: {
         type: String,
         required: true
     },
-    contenido:{
+    contenido: {
         type: String,
         required: true
     },
-    fecha:{
+    imagen: {
+        type: String,
+        default: "defaul.png"
+
+    },
+    public_id: {
+        type: String
+    },
+    secure_url: {
+        type: String
+
+    }, fecha: {
         type: Date,
         default: Date.now
     },
-    imagen:{
-        type: String,
-        default: "defaul.png"
-    } 
 
 });
 
