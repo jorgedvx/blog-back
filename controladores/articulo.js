@@ -325,6 +325,8 @@ const subir = async (req, res) => {
 
                 const articuloAntiguo = await Articulo.findById({ _id: articuloId})
 
+                console.log(articuloAntiguo)
+
                 // Buscar y actualizar articulo
                 Articulo.findOneAndUpdate({ _id: articuloId }, { public_id: result.public_id, secure_url: result.secure_url , imagen: req.files.image.name }, { new: true }).then(async(articuloActualizado) => {
 
@@ -337,9 +339,11 @@ const subir = async (req, res) => {
 
                     fse.unlinkSync(req.files.image.tempFilePath)
 
-                    if(articuloAntiguo.public_id !== articuloActualizado.public_id){
+                    if(articuloAntiguo.imagen !== "defaul.png"){
 
+                        
                         await deleteImage(articuloAntiguo.public_id)
+                        
             
                         
                     }
